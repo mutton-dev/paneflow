@@ -21,3 +21,15 @@ export async function listPanes(): Promise<Pane[]> {
     .filter((parts) => parts.length === 3 && parts.every((p) => p.length > 0))
     .map(([id, windowName, command]) => ({ id, windowName, command }));
 }
+
+export async function capturePaneOutput(paneId: string, lines = 50): Promise<string> {
+  const { stdout } = await execFileAsync('tmux', [
+    'capture-pane',
+    '-t',
+    paneId,
+    '-p',
+    '-S',
+    `-${lines}`,
+  ]);
+  return stdout;
+}
