@@ -5,7 +5,7 @@ vi.mock('node:child_process', () => ({
 }));
 
 import { execFile } from 'node:child_process';
-import { listPanes } from '../src/tmux.js';
+import { listPanes, capturePaneOutput } from '../src/tmux.js';
 
 const execFileMock = vi.mocked(execFile);
 
@@ -56,5 +56,37 @@ describe('listPanes', () => {
       { id: '%0', windowName: 'main', command: 'node' },
       { id: '%1', windowName: 'build', command: 'tsx' },
     ]);
+  });
+});
+
+describe('capturePaneOutput', () => {
+  beforeEach(() => {
+    execFileMock.mockReset();
+  });
+
+  it('returns the captured stdout for a given pane id', async () => {
+    mockExecFileStdout('line a\nline b\nline c\n');
+    const out = await capturePaneOutput('%0');
+    expect(out).toBe('line a\nline b\nline c\n');
+  });
+
+  it('calls tmux capture-pane with default 50 lines when lines is omitted', async () => {
+    mockExecFileStdout('');
+    await capturePaneOutput('%2');
+    expect(execFileMock).toHaveBeenCalledWith(
+      'tmux',
+      ['capture-pane', '-t', '%2', '-p', '-S', '-50'],
+      expect.any(Function),
+    );
+  });
+
+  it('uses the provided lines argument', async () => {
+    mockExecFileStdout('');
+    await capturePaneOutput('%1', 200);
+    expect(execFileMock).toHaveBeenCalledWith(
+      'tmux',
+      ['capture-pane', '-t', '%1', '-p', '-S', '-200'],
+      expect.any(Function),
+    );
   });
 });
